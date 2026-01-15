@@ -1,123 +1,403 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>OrderSense</title>
+  <title>OrderSense — WEEX AI Execution</title>
+  <meta name="description" content="OrderSense is an AI execution optimizer for WEEX. It decides how to place orders (maker vs taker, limit vs IOC) from live market conditions and logs every decision."/>
   <style>
-    :root { --bg:#0b1020; --card:#121a33; --text:#e8eeff; --muted:#aab6e6; --border:rgba(255,255,255,.08); }
-    body{ margin:0; font-family:ui-sans-serif,system-ui,-apple-system; background:radial-gradient(1200px 600px at 10% 10%, #1b2a6b 0%, var(--bg) 60%); color:var(--text);}
-    .wrap{ max-width:1100px; margin:24px auto; padding:0 16px;}
-    h1{ margin:0 0 6px 0; font-size:28px;}
-    .sub{ color:var(--muted); margin:0 0 18px 0; }
-    .row{ display:flex; gap:12px; flex-wrap:wrap; }
-    .card{ background:rgba(18,26,51,.85); border:1px solid var(--border); border-radius:14px; padding:14px; backdrop-filter: blur(10px); }
-    .card h3{ margin:0 0 10px 0; font-size:14px; color:var(--muted); font-weight:600; letter-spacing:.2px;}
-    .grow{ flex:1; min-width:280px;}
-    .controls{ display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
-    button{ padding:10px 14px; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.06); color:var(--text); cursor:pointer; }
-    button:hover{ background:rgba(255,255,255,.10); }
-    .pill{ display:inline-flex; gap:8px; align-items:center; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:rgba(255,255,255,.06); font-size:12px; color:var(--muted); }
-    .dot{ width:8px; height:8px; border-radius:999px; background:#999;}
-    .ok{ background:#2be37a;}
-    .bad{ background:#ff5b6e;}
-    .warn{ background:#ffcc66;}
-    pre{ margin:0; white-space:pre-wrap; font-size:12px; color:#dbe4ff;}
-    .events{ max-height:520px; overflow:auto; }
-    .evt{ border-top:1px solid var(--border); padding:10px 0; }
-    .evt:first-child{ border-top:none; }
-    .evtHead{ display:flex; justify-content:space-between; gap:10px; }
-    .tag{ font-size:11px; padding:3px 8px; border-radius:999px; border:1px solid var(--border); color:var(--muted); }
-    .right{ text-align:right; color:var(--muted); font-size:12px;}
-    .kv{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;}
+    :root{
+      --bg:#070A12;
+      --bg2:#0B1020;
+      --card:rgba(255,255,255,.05);
+      --border:rgba(255,255,255,.10);
+      --text:#EAF0FF;
+      --muted:#AAB6E6;
+      --accent:#7C5CFF;
+      --good:#2BE37A;
+      --bad:#FF5B6E;
+      --warn:#FFCC66;
+      --shadow: 0 18px 60px rgba(0,0,0,.35);
+      --radius: 18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 600px at 10% 10%, rgba(124,92,255,.25) 0%, rgba(7,10,18,0) 60%),
+        radial-gradient(900px 500px at 90% 15%, rgba(43,227,122,.12) 0%, rgba(7,10,18,0) 55%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+    }
+    a{color:inherit; text-decoration:none}
+    .wrap{max-width:1120px; margin:0 auto; padding:0 18px;}
+    .nav{
+      position:sticky; top:0; z-index:20;
+      background:rgba(7,10,18,.65);
+      backdrop-filter: blur(12px);
+      border-bottom:1px solid var(--border);
+    }
+    .navInner{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 0;}
+    .brand{display:flex; align-items:center; gap:10px;}
+    .logo{
+      width:36px; height:36px; border-radius:12px;
+      background:linear-gradient(135deg, rgba(124,92,255,1), rgba(43,227,122,1));
+      box-shadow: 0 10px 30px rgba(124,92,255,.25);
+    }
+    .brand b{letter-spacing:.2px}
+    .links{display:flex; gap:14px; align-items:center; flex-wrap:wrap;}
+    .chip{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 12px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      background:rgba(255,255,255,.04);
+      color:var(--muted);
+      font-size:13px;
+    }
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center; gap:10px;
+      padding:10px 14px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      cursor:pointer;
+      box-shadow:none;
+      transition: transform .06s ease, background .15s ease;
+      font-weight:600;
+    }
+    .btn:hover{background:rgba(255,255,255,.10)}
+    .btn:active{transform: translateY(1px)}
+    .btnPrimary{
+      background: linear-gradient(135deg, rgba(124,92,255,.95), rgba(124,92,255,.65));
+      border-color: rgba(124,92,255,.65);
+    }
+    .btnPrimary:hover{background: linear-gradient(135deg, rgba(124,92,255,1), rgba(124,92,255,.7));}
+    .hero{padding:44px 0 22px;}
+    .heroGrid{display:grid; grid-template-columns: 1.2fr .8fr; gap:18px;}
+    @media (max-width: 920px){ .heroGrid{grid-template-columns:1fr;} }
+    .hTitle{font-size:42px; line-height:1.05; margin:0 0 10px;}
+    .hSub{margin:0 0 18px; color:var(--muted); font-size:16px; max-width: 60ch;}
+    .panel{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      padding:16px;
+      box-shadow: var(--shadow);
+    }
+    .grid3{display:grid; grid-template-columns: repeat(3, 1fr); gap:12px;}
+    @media (max-width: 920px){ .grid3{grid-template-columns:1fr;} }
+    .k{color:var(--muted); font-size:12px; margin-bottom:6px;}
+    .v{font-size:18px; font-weight:700;}
+    .dot{width:10px; height:10px; border-radius:99px; background:#999; display:inline-block}
+    .ok{background:var(--good)} .bad{background:var(--bad)} .warn{background:var(--warn)}
+    .sec{padding:18px 0;}
+    .sec h2{margin:0 0 10px; font-size:20px;}
+    .sec p{margin:0; color:var(--muted); line-height:1.55;}
+    .cards{display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-top:12px;}
+    @media (max-width: 920px){ .cards{grid-template-columns:1fr;} }
+    .card{
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      padding:14px;
+    }
+    .card h3{margin:0 0 6px; font-size:14px;}
+    .small{font-size:12px; color:var(--muted); line-height:1.5}
+    .split{display:grid; grid-template-columns: 1fr 1fr; gap:12px;}
+    @media (max-width: 920px){ .split{grid-template-columns:1fr;} }
+
+    /* Live demo */
+    .demoTop{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.04);
+      color:var(--muted);
+      font-size:12px;
+    }
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;}
+    .events{max-height:520px; overflow:auto; margin-top:12px;}
+    .evt{border-top:1px solid var(--border); padding:10px 0;}
+    .evt:first-child{border-top:none}
+    .evtHead{display:flex; justify-content:space-between; gap:12px; align-items:flex-start;}
+    .tag{font-size:11px; padding:3px 8px; border-radius:999px; border:1px solid var(--border); color:var(--muted);}
+    .right{color:var(--muted); font-size:12px; text-align:right;}
+    pre{margin:8px 0 0; white-space:pre-wrap; font-size:12px; color:#DCE6FF;}
+    .footer{padding:26px 0 40px; color:var(--muted); font-size:12px;}
+    .hr{height:1px; background:var(--border); margin:14px 0;}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>OrderSense</h1>
-    <p class="sub">AI execution policy + WEEX AI logs • live demo dashboard</p>
-
-    <div class="row">
-      <div class="card grow">
-        <h3>System</h3>
-        <div class="controls">
-          <span class="pill"><span id="runDot" class="dot"></span> <span id="runTxt">…</span></span>
-          <span class="pill"><span id="srcDot" class="dot"></span> Market: <b id="srcTxt">…</b></span>
-          <span class="pill"><span id="dryDot" class="dot"></span> DRY_RUN: <b id="dryTxt">…</b></span>
-          <span class="pill">Symbol: <b id="symTxt">…</b></span>
+  <div class="nav">
+    <div class="wrap">
+      <div class="navInner">
+        <div class="brand">
+          <div class="logo"></div>
+          <div>
+            <b>OrderSense</b>
+            <div class="small">WEEX AI Hackathon • execution intelligence</div>
+          </div>
         </div>
-        <div class="kv">
-          <button onclick="startBot()">Start</button>
-          <button onclick="stopBot()">Stop</button>
-          <span class="pill">Backend: <span id="backendTxt"></span></span>
+        <div class="links">
+          <a class="chip" href="#about">About</a>
+          <a class="chip" href="#how">How it works</a>
+          <a class="chip" href="#demo">Live demo</a>
+          <button class="btn btnPrimary" onclick="scrollToDemo()">Open Live Demo</button>
         </div>
-      </div>
-
-      <div class="card grow">
-        <h3>Metrics</h3>
-        <pre id="metrics">{}</pre>
-      </div>
-    </div>
-
-    <div class="row" style="margin-top:12px;">
-      <div class="card grow">
-        <h3>Events (newest first)</h3>
-        <div id="events" class="events"></div>
       </div>
     </div>
   </div>
 
-<script>
-const BACKEND = location.origin;
-document.getElementById("backendTxt").textContent = BACKEND;
+  <div class="wrap">
+    <section class="hero" id="top">
+      <div class="heroGrid">
+        <div class="panel">
+          <h1 class="hTitle">AI execution, not just strategy.</h1>
+          <p class="hSub">
+            OrderSense decides <b>how</b> to place an order (maker vs taker, limit vs IOC/post-only) based on market conditions,
+            and produces explainable logs for every decision.
+          </p>
 
-async function fetchJson(path, opts){ return fetch(BACKEND+path, opts).then(r=>r.json()); }
-function esc(s){ return (s??"").toString().replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
-function setDot(el, kind){ el.className = "dot " + (kind||""); }
-
-async function refresh(){
-  const status = await fetchJson("/api/status");
-  document.getElementById("symTxt").textContent = status.symbol || "—";
-
-  setDot(document.getElementById("runDot"), status.running ? "ok" : "bad");
-  document.getElementById("runTxt").textContent = status.running ? "RUNNING" : "STOPPED";
-
-  setDot(document.getElementById("dryDot"), status.dry_run ? "warn" : "ok");
-  document.getElementById("dryTxt").textContent = status.dry_run ? "true" : "false";
-
-  document.getElementById("metrics").textContent = JSON.stringify(await fetchJson("/api/metrics"), null, 2);
-
-  const events = await fetchJson("/api/events");
-  const latestDecision = events.find(e => e.type === "decision");
-  const src = latestDecision?.snapshot?.source || "—";
-  document.getElementById("srcTxt").textContent = src;
-  setDot(document.getElementById("srcDot"), src === "weex" ? "ok" : (src === "fallback" ? "warn" : ""));
-
-  document.getElementById("events").innerHTML = events.map(e => {
-    const t = e.ts ? new Date(e.ts*1000).toLocaleTimeString() : "";
-    const tag = e.type || "event";
-    let headline = e.msg || e.reason || "";
-    if (e.type === "order") headline = `${e.status} • orderId=${e.orderId}`;
-    if (e.type === "error") headline = e.msg || "error";
-    return `
-      <div class="evt">
-        <div class="evtHead">
-          <div>
-            <span class="tag">${esc(tag)}</span>
-            <span style="color:#aab6e6; font-size:12px; margin-left:8px;">${esc(headline)}</span>
+          <div class="grid3">
+            <div class="card">
+              <div class="k">Core value</div>
+              <div class="v">Lower slippage</div>
+              <div class="small">Choose execution style from spread/liquidity.</div>
+            </div>
+            <div class="card">
+              <div class="k">Explainability</div>
+              <div class="v">Decision reasons</div>
+              <div class="small">Every action includes a human-readable rationale.</div>
+            </div>
+            <div class="card">
+              <div class="k">Hackathon fit</div>
+              <div class="v">AI log pipeline</div>
+              <div class="small">Structured stage/model/input/output/explanation.</div>
+            </div>
           </div>
-          <div class="right">${esc(t)}</div>
+
+          <div class="hr"></div>
+
+          <div class="split">
+            <div class="card">
+              <h3>What’s running</h3>
+              <div class="small">
+                Backend serves this site at <span class="mono" id="originTxt">…</span> and exposes:
+                <span class="mono">/api/status</span>, <span class="mono">/api/start</span>, <span class="mono">/api/events</span>.
+              </div>
+            </div>
+            <div class="card">
+              <h3>Safety</h3>
+              <div class="small">
+                Keep <span class="mono">DRY_RUN=1</span> for demos. When WEEX is unavailable, OrderSense auto-switches to
+                <span class="mono">fallback</span> market snapshots so the UI stays live.
+              </div>
+            </div>
+          </div>
         </div>
-        <pre style="margin-top:8px;">${esc(JSON.stringify(e, null, 2))}</pre>
-      </div>`;
-  }).join("");
-}
 
-async function startBot(){ await fetchJson("/api/start", {method:"POST"}); await refresh(); }
-async function stopBot(){ await fetchJson("/api/stop", {method:"POST"}); await refresh(); }
+        <div class="panel">
+          <h2 style="margin:0 0 10px; font-size:18px;">System status</h2>
+          <div class="cards" style="grid-template-columns:1fr; margin-top:0;">
+            <div class="card">
+              <div class="k">Bot</div>
+              <div class="v"><span class="dot" id="runDot"></span> <span id="runTxt">…</span></div>
+              <div class="small">Start/stop controls in the live demo section.</div>
+            </div>
+            <div class="card">
+              <div class="k">Market source</div>
+              <div class="v"><span class="dot" id="srcDot"></span> <span id="srcTxt">…</span></div>
+              <div class="small">WEEX when reachable, fallback if network blocks WEEX.</div>
+            </div>
+            <div class="card">
+              <div class="k">Mode</div>
+              <div class="v"><span class="dot" id="dryDot"></span> DRY_RUN: <span id="dryTxt">…</span></div>
+              <div class="small">In DRY_RUN, orders are simulated (safe).</div>
+            </div>
+            <div class="card">
+              <div class="k">Symbol</div>
+              <div class="v"><span id="symTxt">…</span></div>
+              <div class="small">Configured via <span class="mono">SYMBOL</span> env var.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-setInterval(refresh, 1000);
-refresh();
+    <section class="sec" id="about">
+      <h2>About OrderSense</h2>
+      <p>
+        Most trading bots focus on generating a signal. OrderSense focuses on execution quality: picking the right order type and
+        style based on real-time market microstructure.
+      </p>
+      <div class="cards">
+        <div class="card">
+          <h3>Execution policy</h3>
+          <div class="small">Rule-based (MVP) with clear, explainable reasoning. Easy to swap in a model later.</div>
+        </div>
+        <div class="card">
+          <h3>WEEX integration</h3>
+          <div class="small">Uses contract market depth to compute mid/spread + a liquidity proxy.</div>
+        </div>
+        <div class="card">
+          <h3>Observability</h3>
+          <div class="small">Events stream shows every error/decision/order; ideal for judging and debugging.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec" id="how">
+      <h2>How it works</h2>
+      <div class="split">
+        <div class="card">
+          <h3>Pipeline</h3>
+          <pre class="mono">Market Depth (WEEX)
+   ↓
+Market Snapshot (mid / spread / liquidity)
+   ↓
+Execution Policy (post-only vs aggressive)
+   ↓
+Order (simulated in DRY_RUN)
+   ↓
+AI Log Record (stage/model/input/output/explanation)</pre>
+        </div>
+        <div class="card">
+          <h3>Demo behavior</h3>
+          <div class="small">
+            If WEEX market calls time out, the system switches to <span class="mono">fallback</span> snapshots to keep the demo running.
+            When WEEX becomes reachable, it automatically returns to <span class="mono">weex</span>.
+          </div>
+          <div class="hr"></div>
+          <div class="small">
+            Tip: for hackathon submission, keep <span class="mono">DRY_RUN=1</span> and show “Market: weex” on the live URL.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec" id="demo">
+      <div class="panel">
+        <div class="demoTop">
+          <div>
+            <h2 style="margin:0 0 4px;">Live demo dashboard</h2>
+            <div class="small">Start the bot, watch decisions, and verify WEEX vs fallback market source.</div>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <span class="pill">Backend: <span class="mono" id="backendTxt">…</span></span>
+            <button class="btn btnPrimary" onclick="startBot()">Start Bot</button>
+            <button class="btn" onclick="stopBot()">Stop Bot</button>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="split">
+          <div class="card">
+            <h3>Metrics</h3>
+            <pre id="metrics" class="mono">{}</pre>
+          </div>
+          <div class="card">
+            <h3>Latest decision</h3>
+            <pre id="latest" class="mono">{}</pre>
+          </div>
+        </div>
+
+        <div class="events" id="events"></div>
+      </div>
+
+      <div class="footer">
+        Built for WEEX AI Hackathon • Project: <b>OrderSense</b> • Mode: <span class="mono" id="footMode">…</span>
+      </div>
+    </section>
+  </div>
+
+<script>
+  const BACKEND = location.origin;
+  const $ = (id) => document.getElementById(id);
+
+  $("originTxt").textContent = BACKEND;
+  $("backendTxt").textContent = BACKEND;
+
+  function esc(s){
+    return (s ?? "").toString()
+      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+  }
+  function setDot(el, kind){ el.className = "dot " + (kind||""); }
+
+  function scrollToDemo(){
+    document.querySelector("#demo").scrollIntoView({behavior:"smooth", block:"start"});
+  }
+
+  async function fetchJson(path, opts){
+    const r = await fetch(BACKEND + path, opts);
+    return r.json();
+  }
+
+  function toTime(ts){
+    try{ return ts ? new Date(ts*1000).toLocaleTimeString() : ""; }catch{ return ""; }
+  }
+
+  async function refresh(){
+    const status = await fetchJson("/api/status");
+    $("symTxt").textContent = status.symbol || "—";
+
+    setDot($("runDot"), status.running ? "ok" : "bad");
+    $("runTxt").textContent = status.running ? "RUNNING" : "STOPPED";
+
+    setDot($("dryDot"), status.dry_run ? "warn" : "ok");
+    $("dryTxt").textContent = status.dry_run ? "true" : "false";
+    $("footMode").textContent = status.dry_run ? "DRY_RUN=1" : "DRY_RUN=0";
+
+    $("metrics").textContent = JSON.stringify(await fetchJson("/api/metrics"), null, 2);
+
+    const events = await fetchJson("/api/events");
+    const latestDecision = events.find(e => e.type === "decision");
+
+    const src = latestDecision?.snapshot?.source || "—";
+    $("srcTxt").textContent = src;
+    setDot($("srcDot"), src === "weex" ? "ok" : (src === "fallback" ? "warn" : ""));
+
+    $("latest").textContent = latestDecision ? JSON.stringify(latestDecision, null, 2) : "{}";
+
+    $("events").innerHTML = events.map(e => {
+      const tag = e.type || "event";
+      let headline = e.msg || e.reason || "";
+      if (e.type === "order") headline = `${e.status} • orderId=${e.orderId}`;
+      if (e.type === "error") headline = e.msg || "error";
+      return `
+        <div class="evt">
+          <div class="evtHead">
+            <div>
+              <span class="tag">${esc(tag)}</span>
+              <span style="color:var(--muted); font-size:12px; margin-left:8px;">${esc(headline)}</span>
+            </div>
+            <div class="right">${esc(toTime(e.ts))}</div>
+          </div>
+          <pre class="mono">${esc(JSON.stringify(e, null, 2))}</pre>
+        </div>`;
+    }).join("");
+  }
+
+  async function startBot(){
+    await fetchJson("/api/start", {method:"POST"});
+    await refresh();
+  }
+  async function stopBot(){
+    await fetchJson("/api/stop", {method:"POST"});
+    await refresh();
+  }
+
+  window.startBot = startBot;
+  window.stopBot = stopBot;
+  window.scrollToDemo = scrollToDemo;
+
+  refresh();
+  setInterval(refresh, 1200);
 </script>
 </body>
 </html>

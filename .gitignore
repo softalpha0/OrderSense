@@ -5,3 +5,11 @@ backend/ai_logs.sqlite-shm
 backend/*.sqlite
 backend/*.sqlite-wal
 backend/*.sqlite-shm
+backend/.env
+backend/ai_logs.sqlite
+backend/ai_logs.sqlite-wal
+backend/ai_logs.sqlite-shm
+backend/*.sqlite
+backend/*.sqlite-wal
+backend/*.sqlite-shm
+**/__pycache__/

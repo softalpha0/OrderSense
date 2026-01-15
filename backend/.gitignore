@@ -1,0 +1,4 @@
+backend/.env
+backend/ai_logs.sqlite
+backend/*.sqlite
+**/__pycache__/

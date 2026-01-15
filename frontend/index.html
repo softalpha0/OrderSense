@@ -1,0 +1,123 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>OrderSense</title>
+  <style>
+    :root { --bg:#0b1020; --card:#121a33; --text:#e8eeff; --muted:#aab6e6; --border:rgba(255,255,255,.08); }
+    body{ margin:0; font-family:ui-sans-serif,system-ui,-apple-system; background:radial-gradient(1200px 600px at 10% 10%, #1b2a6b 0%, var(--bg) 60%); color:var(--text);}
+    .wrap{ max-width:1100px; margin:24px auto; padding:0 16px;}
+    h1{ margin:0 0 6px 0; font-size:28px;}
+    .sub{ color:var(--muted); margin:0 0 18px 0; }
+    .row{ display:flex; gap:12px; flex-wrap:wrap; }
+    .card{ background:rgba(18,26,51,.85); border:1px solid var(--border); border-radius:14px; padding:14px; backdrop-filter: blur(10px); }
+    .card h3{ margin:0 0 10px 0; font-size:14px; color:var(--muted); font-weight:600; letter-spacing:.2px;}
+    .grow{ flex:1; min-width:280px;}
+    .controls{ display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+    button{ padding:10px 14px; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.06); color:var(--text); cursor:pointer; }
+    button:hover{ background:rgba(255,255,255,.10); }
+    .pill{ display:inline-flex; gap:8px; align-items:center; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:rgba(255,255,255,.06); font-size:12px; color:var(--muted); }
+    .dot{ width:8px; height:8px; border-radius:999px; background:#999;}
+    .ok{ background:#2be37a;}
+    .bad{ background:#ff5b6e;}
+    .warn{ background:#ffcc66;}
+    pre{ margin:0; white-space:pre-wrap; font-size:12px; color:#dbe4ff;}
+    .events{ max-height:520px; overflow:auto; }
+    .evt{ border-top:1px solid var(--border); padding:10px 0; }
+    .evt:first-child{ border-top:none; }
+    .evtHead{ display:flex; justify-content:space-between; gap:10px; }
+    .tag{ font-size:11px; padding:3px 8px; border-radius:999px; border:1px solid var(--border); color:var(--muted); }
+    .right{ text-align:right; color:var(--muted); font-size:12px;}
+    .kv{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>OrderSense</h1>
+    <p class="sub">AI execution policy + WEEX AI logs • live demo dashboard</p>
+
+    <div class="row">
+      <div class="card grow">
+        <h3>System</h3>
+        <div class="controls">
+          <span class="pill"><span id="runDot" class="dot"></span> <span id="runTxt">…</span></span>
+          <span class="pill"><span id="srcDot" class="dot"></span> Market: <b id="srcTxt">…</b></span>
+          <span class="pill"><span id="dryDot" class="dot"></span> DRY_RUN: <b id="dryTxt">…</b></span>
+          <span class="pill">Symbol: <b id="symTxt">…</b></span>
+        </div>
+        <div class="kv">
+          <button onclick="startBot()">Start</button>
+          <button onclick="stopBot()">Stop</button>
+          <span class="pill">Backend: <span id="backendTxt"></span></span>
+        </div>
+      </div>
+
+      <div class="card grow">
+        <h3>Metrics</h3>
+        <pre id="metrics">{}</pre>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <div class="card grow">
+        <h3>Events (newest first)</h3>
+        <div id="events" class="events"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const BACKEND = location.origin;
+document.getElementById("backendTxt").textContent = BACKEND;
+
+async function fetchJson(path, opts){ return fetch(BACKEND+path, opts).then(r=>r.json()); }
+function esc(s){ return (s??"").toString().replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
+function setDot(el, kind){ el.className = "dot " + (kind||""); }
+
+async function refresh(){
+  const status = await fetchJson("/api/status");
+  document.getElementById("symTxt").textContent = status.symbol || "—";
+
+  setDot(document.getElementById("runDot"), status.running ? "ok" : "bad");
+  document.getElementById("runTxt").textContent = status.running ? "RUNNING" : "STOPPED";
+
+  setDot(document.getElementById("dryDot"), status.dry_run ? "warn" : "ok");
+  document.getElementById("dryTxt").textContent = status.dry_run ? "true" : "false";
+
+  document.getElementById("metrics").textContent = JSON.stringify(await fetchJson("/api/metrics"), null, 2);
+
+  const events = await fetchJson("/api/events");
+  const latestDecision = events.find(e => e.type === "decision");
+  const src = latestDecision?.snapshot?.source || "—";
+  document.getElementById("srcTxt").textContent = src;
+  setDot(document.getElementById("srcDot"), src === "weex" ? "ok" : (src === "fallback" ? "warn" : ""));
+
+  document.getElementById("events").innerHTML = events.map(e => {
+    const t = e.ts ? new Date(e.ts*1000).toLocaleTimeString() : "";
+    const tag = e.type || "event";
+    let headline = e.msg || e.reason || "";
+    if (e.type === "order") headline = `${e.status} • orderId=${e.orderId}`;
+    if (e.type === "error") headline = e.msg || "error";
+    return `
+      <div class="evt">
+        <div class="evtHead">
+          <div>
+            <span class="tag">${esc(tag)}</span>
+            <span style="color:#aab6e6; font-size:12px; margin-left:8px;">${esc(headline)}</span>
+          </div>
+          <div class="right">${esc(t)}</div>
+        </div>
+        <pre style="margin-top:8px;">${esc(JSON.stringify(e, null, 2))}</pre>
+      </div>`;
+  }).join("");
+}
+
+async function startBot(){ await fetchJson("/api/start", {method:"POST"}); await refresh(); }
+async function stopBot(){ await fetchJson("/api/stop", {method:"POST"}); await refresh(); }
+
+setInterval(refresh, 1000);
+refresh();
+</script>
+</body>
+</html>

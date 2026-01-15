@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>OrderSense</title>
+  <style>
+    body{font-family:system-ui;margin:24px;max-width:1150px}
+    .row{display:flex;gap:12px;align-items:center}
+    .card{border:1px solid #ddd;border-radius:12px;padding:14px;flex:1;background:#fff}
+    button{padding:10px 14px;border-radius:10px;border:1px solid #ccc;background:#f7f7f7;cursor:pointer}
+    button:hover{background:#eee}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+    .pill{display:inline-block;padding:4px 10px;border:1px solid #ddd;border-radius:999px;font-size:12px}
+    .ok{background:#e9fbe9}
+    .bad{background:#ffecec}
+    #events{max-height:520px;overflow:auto}
+    .evt{border-bottom:1px solid #eee;padding:10px 0}
+    .evt-head{display:flex;justify-content:space-between;gap:10px}
+    pre{margin:8px 0 0 0;white-space:pre-wrap;font-size:12px;color:#222}
+    .muted{opacity:.65;font-size:12px}
+  </style>
+</head>
+<body>
+  <h1 style="margin:0 0 12px 0;">OrderSense</h1>
+
+  <div class="row">
+    <div class="card">
+      <div class="evt-head">
+        <div><b>Status</b></div>
+        <span id="statusPill" class="pill">...</span>
+      </div>
+      <div class="muted" id="statusMeta"></div>
+    </div>
+    <div class="card" style="flex:0 0 auto">
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="startBot()">Start</button>
+        <button onclick="stopBot()">Stop</button>
+      </div>
+      <div class="muted" style="margin-top:8px">Backend: <span id="backendUrl"></span></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <b>Metrics</b>
+      <pre id="metrics">{}</pre>
+    </div>
+
+    <div class="card">
+      <b>Events</b>
+      <div id="events"></div>
+    </div>
+  </div>
+
+<script>
+const BACKEND="http://127.0.0.1:8000";
+document.getElementById("backendUrl").textContent = BACKEND;
+
+async function fetchJson(path, opts){ return fetch(BACKEND+path, opts).then(r=>r.json()); }
+
+function pill(running){
+  const el = document.getElementById("statusPill");
+  el.textContent = running ? "RUNNING" : "STOPPED";
+  el.className = "pill " + (running ? "ok" : "bad");
+}
+
+function escapeHtml(s){ return s.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
+
+async function refresh(){
+  const s = await fetchJson("/api/status");
+  pill(!!s.running);
+  document.getElementById("statusMeta").textContent =
+    `Symbol: ${s.symbol || "—"}  •  Started: ${s.started_at ? new Date(s.started_at*1000).toLocaleString() : "—"}`;
+
+  document.getElementById("metrics").textContent = JSON.stringify(await fetchJson("/api/metrics"), null, 2);
+
+  const events = await fetchJson("/api/events");
+  document.getElementById("events").innerHTML = events.map(e => {
+    const t = e.ts ? new Date(e.ts*1000).toLocaleTimeString() : "";
+    const title = e.type || "event";
+    const line = e.reason ? e.reason : (e.msg ? e.msg : "");
+    return `
+      <div class="evt">
+        <div class="evt-head">
+          <div><span class="pill">${title}</span> <span class="muted">${escapeHtml(line)}</span></div>
+          <div class="muted">${t}</div>
+        </div>
+        <pre>${escapeHtml(JSON.stringify(e, null, 2))}</pre>
+      </div>`;
+  }).join("");
+}
+
+async function startBot(){ await fetchJson("/api/start", {method:"POST"}); await refresh(); }
+async function stopBot(){ await fetchJson("/api/stop", {method:"POST"}); await refresh(); }
+
+setInterval(refresh, 1000);
+refresh();
+</script>
+</body>
+</html>

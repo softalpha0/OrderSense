@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: ordersense
+    env: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: python backend/server.py
+    envVars:
+      - key: WEEX_API_KEY
+        sync: false
+      - key: WEEX_SECRET_KEY
+        sync: false
+      - key: WEEX_PASSPHRASE
+        sync: false
+      - key: WEEX_BASE_URL
+        value: https://api-contract.weex.com
+      - key: MODEL_NAME
+        value: ordersense-v1
+      - key: DRY_RUN
+        value: "1"
+      - key: SYMBOL
+        value: cmt_btcusdt
+      - key: ORDER_SIZE
+        value: "0.001"

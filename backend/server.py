@@ -1,6 +1,7 @@
 import json
 import os
 import random
+from pathlib import Path
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -161,13 +162,12 @@ def bot_loop():
 
         time.sleep(3)
 
-def _read_frontend_index() -> bytes:
-    p = os.path.join(os.path.dirname(__file__), "..", "frontend", "index.html")
+def _read_frontend_file(name: str) -> bytes:
+    p = Path(__file__).resolve().parent.parent / "frontend" / name
     try:
-        with open(p, "rb") as f:
-            return f.read()
+        return p.read_bytes()
     except Exception:
-        return b"OrderSense backend is running. Open /api/status"
+        return b"OrderSense backend is running."
 
 class Handler(BaseHTTPRequestHandler):
     def _send(self, code, obj):
@@ -189,7 +189,23 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
         if path == "/":
-            body = _read_frontend_index()
+            body = _read_frontend_file("index.html")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
+        if path == "/demo":
+            body = _read_frontend_file("demo.html")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Access-Control-Allow-Origin", "*")

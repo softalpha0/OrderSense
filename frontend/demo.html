@@ -1,129 +1,56 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>OrderSense — Live Demo</title>
   <style>
-    :root { --bg:#0b1020; --card:#121a33; --text:#e8eeff; --muted:#aab6e6; --border:rgba(255,255,255,.08); }
-    body{ margin:0; font-family:ui-sans-serif,system-ui,-apple-system; background:radial-gradient(1200px 600px at 10% 10%, #1b2a6b 0%, var(--bg) 60%); color:var(--text);}
-    .wrap{ max-width:1100px; margin:24px auto; padding:0 16px;}
-    .top{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;}
-    h1{ margin:0; font-size:24px;}
-    a{color:var(--muted); text-decoration:none}
-    a:hover{color:var(--text)}
-    .row{ display:flex; gap:12px; flex-wrap:wrap; margin-top:12px;}
-    .card{ background:rgba(18,26,51,.85); border:1px solid var(--border); border-radius:14px; padding:14px; backdrop-filter: blur(10px); }
-    .card h3{ margin:0 0 10px 0; font-size:14px; color:var(--muted); font-weight:600; letter-spacing:.2px;}
-    .grow{ flex:1; min-width:280px;}
-    .controls{ display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
-    button{ padding:10px 14px; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.06); color:var(--text); cursor:pointer; }
-    button:hover{ background:rgba(255,255,255,.10); }
-    .pill{ display:inline-flex; gap:8px; align-items:center; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:rgba(255,255,255,.06); font-size:12px; color:var(--muted); }
-    .dot{ width:8px; height:8px; border-radius:999px; background:#999;}
-    .ok{ background:#2be37a;}
-    .bad{ background:#ff5b6e;}
-    .warn{ background:#ffcc66;}
-    pre{ margin:0; white-space:pre-wrap; font-size:12px; color:#dbe4ff;}
-    .events{ max-height:520px; overflow:auto; }
-    .evt{ border-top:1px solid var(--border); padding:10px 0; }
-    .evt:first-child{ border-top:none; }
-    .evtHead{ display:flex; justify-content:space-between; gap:10px; }
-    .tag{ font-size:11px; padding:3px 8px; border-radius:999px; border:1px solid var(--border); color:var(--muted); }
-    .right{ text-align:right; color:var(--muted); font-size:12px;}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#070A12;color:#EAF0FF}
+    .wrap{max-width:1100px;margin:0 auto;padding:18px}
+    .bar{display:flex;gap:10px;align-items:center;justify-content:space-between}
+    a,button{color:#EAF0FF}
+    button{padding:10px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);cursor:pointer}
+    button:hover{background:rgba(255,255,255,.1)}
+    .card{margin-top:14px;padding:14px;border-radius:16px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.06)}
+    pre{white-space:pre-wrap;font-family:ui-monospace,Menlo,Monaco,Consolas,monospace;font-size:12px}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="top">
-      <div>
-        <h1>OrderSense — Live Demo</h1>
-        <div style="color:var(--muted); font-size:13px;">Start the bot and watch decisions + orders + WEEX/fallback source.</div>
-      </div>
-      <div><a href="/">← Back to website</a></div>
-    </div>
-
-    <div class="row">
-      <div class="card grow">
-        <h3>System</h3>
-        <div class="controls">
-          <span class="pill"><span id="runDot" class="dot"></span> <span id="runTxt">…</span></span>
-          <span class="pill"><span id="srcDot" class="dot"></span> Market: <b id="srcTxt">…</b></span>
-          <span class="pill"><span id="dryDot" class="dot"></span> DRY_RUN: <b id="dryTxt">…</b></span>
-          <span class="pill">Symbol: <b id="symTxt">…</b></span>
-          </span>
-        </div>
-        <div class="controls" style="margin-top:10px;">
-          <button onclick="startBot()">Start</button>
-          <button onclick="stopBot()">Stop</button>
-        </div>
-      </div>
-
-      <div class="card grow">
-        <h3>Metrics</h3>
-        <pre id="metrics">{}</pre>
+    <div class="bar">
+      <div><b>OrderSense</b> <span style="opacity:.7">Live demo</span></div>
+      <div style="display:flex;gap:10px">
+        <a href="/" style="text-decoration:none;opacity:.8">Back</a>
+        <button onclick="startBot()">Start</button>
+        <button onclick="stopBot()">Stop</button>
       </div>
     </div>
 
-    <div class="row">
-      <div class="card grow">
-        <h3>Events (newest first)</h3>
-        <div id="events" class="events"></div>
-      </div>
+    <div class="card">
+      <div id="status"></div>
+      <pre id="events">{}</pre>
     </div>
   </div>
 
 <script>
 const BACKEND = location.origin;
-document.getElementById("backendTxt").textContent = BACKEND;
 
-async function fetchJson(path, opts){ return fetch(BACKEND+path, opts).then(r=>r.json()); }
-function esc(s){ return (s??"").toString().replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;"); }
-function setDot(el, kind){ el.className = "dot " + (kind||""); }
-
-async function refresh(){
-  const status = await fetchJson("/api/status");
-  document.getElementById("symTxt").textContent = status.symbol || "—";
-
-  setDot(document.getElementById("runDot"), status.running ? "ok" : "bad");
-  document.getElementById("runTxt").textContent = status.running ? "RUNNING" : "STOPPED";
-
-  setDot(document.getElementById("dryDot"), status.dry_run ? "warn" : "ok");
-  document.getElementById("dryTxt").textContent = status.dry_run ? "true" : "false";
-
-  document.getElementById("metrics").textContent = JSON.stringify(await fetchJson("/api/metrics"), null, 2);
-
-  const events = await fetchJson("/api/events");
-  const latestDecision = events.find(e => e.type === "decision");
-  const src = latestDecision?.snapshot?.source || "—";
-  document.getElementById("srcTxt").textContent = src;
-  setDot(document.getElementById("srcDot"), src === "weex" ? "ok" : (src === "fallback" ? "warn" : ""));
-
-  document.getElementById("events").innerHTML = events.map(e => {
-    const t = e.ts ? new Date(e.ts*1000).toLocaleTimeString() : "";
-    const tag = e.type || "event";
-    let headline = e.msg || e.reason || "";
-    if (e.type === "order") headline = `${e.status} • orderId=${e.orderId}`;
-    if (e.type === "error") headline = e.msg || "error";
-    return `
-      <div class="evt">
-        <div class="evtHead">
-          <div>
-            <span class="tag">${esc(tag)}</span>
-            <span style="color:#aab6e6; font-size:12px; margin-left:8px;">${esc(headline)}</span>
-          </div>
-          <div class="right">${esc(t)}</div>
-        </div>
-        <pre style="margin-top:8px;">${esc(JSON.stringify(e, null, 2))}</pre>
-      </div>`;
-  }).join("");
+async function j(path, opts){
+  const r = await fetch(BACKEND + path, opts);
+  return r.json();
 }
+async function refresh(){
+  const s = await j("/api/status");
+  document.getElementById("status").textContent =
+    `running=${s.running}  dry_run=${s.dry_run}  symbol=${s.symbol}`;
+  const ev = await j("/api/events");
+  document.getElementById("events").textContent = JSON.stringify(ev, null, 2);
+}
+async function startBot(){ await j("/api/start", {method:"POST"}); await refresh(); }
+async function stopBot(){ await j("/api/stop", {method:"POST"}); await refresh(); }
 
-async function startBot(){ await fetchJson("/api/start", {method:"POST"}); await refresh(); }
-async function stopBot(){ await fetchJson("/api/stop", {method:"POST"}); await refresh(); }
-
-setInterval(refresh, 1000);
-refresh();
+window.startBot = startBot; window.stopBot = stopBot;
+refresh(); setInterval(refresh, 1200);
 </script>
 </body>
 </html>

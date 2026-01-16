@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>OrderSense | Vision</title>
+  <style>
+    :root{
+      --bg1:#0b0a14;
+      --bg2:#061616;
+      --card: rgba(255,255,255,0.06);
+      --stroke: rgba(255,255,255,0.10);
+      --text: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.70);
+      --accent1:#b15cff;
+      --accent2:#39e7b5;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      color:var(--text);
+      background:
+        radial-gradient(900px 600px at 20% 10%, rgba(177,92,255,0.25), transparent 60%),
+        radial-gradient(900px 600px at 85% 25%, rgba(57,231,181,0.20), transparent 60%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+      min-height:100vh;
+    }
+    .wrap{max-width:980px; margin:0 auto; padding:28px 18px 60px;}
+    .nav{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px 12px;
+      border:1px solid var(--stroke);
+      border-radius:16px;
+      background:rgba(0,0,0,0.20);
+      backdrop-filter: blur(10px);
+    }
+    .brand{display:flex; align-items:center; gap:10px;}
+    .logo{
+      width:30px;height:30px;border-radius:10px;
+      background: radial-gradient(circle at 30% 20%, var(--accent1), transparent 60%),
+                  radial-gradient(circle at 70% 70%, var(--accent2), transparent 60%),
+                  rgba(255,255,255,0.08);
+      border:1px solid var(--stroke);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+    }
+    .brand h1{font-size:14px; margin:0; letter-spacing:0.2px;}
+    .brand span{display:block; font-size:12px; color:var(--muted); margin-top:2px;}
+    .links{display:flex; gap:14px; align-items:center; flex-wrap:wrap;}
+    .links a{
+      color:var(--muted);
+      text-decoration:none;
+      font-size:13px;
+      padding:8px 10px;
+      border-radius:10px;
+    }
+    .links a:hover{background: rgba(255,255,255,0.06); color: var(--text);}
+    .btn{
+      color: #0b0a14 !important;
+      background: linear-gradient(90deg, var(--accent1), var(--accent2));
+      padding:9px 12px !important;
+      border-radius:12px;
+      font-weight:700;
+    }
+    .hero{margin-top:22px; padding:22px; border-radius:18px; border:1px solid var(--stroke); background: var(--card);}
+    .kicker{color:var(--muted); font-size:13px; margin:0 0 8px;}
+    .title{font-size:34px; line-height:1.12; margin:0 0 10px;}
+    .sub{color:var(--muted); margin:0; max-width:70ch;}
+    .card{margin-top:16px; padding:18px; border-radius:18px; border:1px solid var(--stroke); background: var(--card);}
+    .card h2{margin:0 0 10px; font-size:16px;}
+    .card p{margin:0 0 12px; color:var(--muted); line-height:1.65;}
+    .card p:last-child{margin-bottom:0;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="nav">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>OrderSense</h1>
+          <span>execution intelligence</span>
+        </div>
+      </div>
+      <div class="links">
+        <a href="/">Home</a>
+        <a href="/vision">Vision</a>
+        <a href="/demo" class="btn">Live demo</a>
+      </div>
+    </div>
+
+    <div class="hero">
+      <p class="kicker">OrderSense</p>
+      <h2 class="title">Vision</h2>
+      <p class="sub">Execution should be adaptive, explainable, and measurable, not a fixed afterthought that every strategy inherits.</p>
+    </div>
+
+    <div class="card">
+      <h2>Our vision</h2>
+      <p>OrderSense’s vision is to make execution a first class, intelligent component of algorithmic trading, especially in crypto markets where microstructure changes quickly and execution quality often determines whether a strategy succeeds or fails. Today, many trading systems focus on generating signals (buy/sell) but treat order placement as a fixed, one size fits all step. In practice, the decision of how to trade, maker vs taker, limit vs aggressive limit/IOC, order sizing, and placement relative to the order book, can have a bigger impact on realized performance than the signal itself through slippage, missed fills, and adverse selection.</p>
+      <p>OrderSense aims to become an execution intelligence layer that sits between strategy and exchange. It continuously reads live market microstructure (spread, depth, liquidity conditions, and volatility proxies), selects the most appropriate execution style for the current environment, and produces clear, explainable rationales for every decision. The goal is not only to improve fill quality and reduce hidden costs, but also to make trading automation safer and easier to operate: every action is observable, traceable, and auditable through structured logs that capture context, inputs, outputs, and explanations.</p>
+      <p>Longer term, we envision OrderSense as a portable engine that can plug into different strategies and venues, providing consistent execution behavior and measurable outcomes. Teams should be able to compare execution policies, replay scenarios, diagnose failures, and iterate quickly using an execution dashboard and standardized log pipeline. As the system matures, rule based policies can evolve into learned policies, trained on historical microstructure and validated with strict risk controls. Ultimately, OrderSense’s mission is to help builders and traders ship real trading agents that are not only smart at prediction, but excellent at execution, transparent enough to trust, and robust enough to run in production.</p>
+    </div>
+  </div>
+</body>
+</html>

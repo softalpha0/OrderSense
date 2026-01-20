@@ -57,6 +57,8 @@ class WeexClient:
         sign = self._sign(ts, method, path, query, body)
 
         headers = {
+            "User-Agent": "OrderSense/1.0",
+            "Accept": "application/json",
             "ACCESS-KEY": self.creds.api_key,
             "ACCESS-SIGN": sign,
             "ACCESS-PASSPHRASE": self.creds.passphrase,
@@ -71,7 +73,9 @@ class WeexClient:
         try:
             payload = resp.json()
         except Exception:
-            raise RuntimeError(f"Non-JSON response (status={resp.status_code}): {resp.text[:500]}")
+            cf = resp.headers.get("cf-ray","")
+            srv = resp.headers.get("server","")
+            raise RuntimeError(f"Non-JSON response (status={resp.status_code}, server={srv}, cf-ray={cf}): {resp.text[:500]}")
 
         if resp.status_code >= 400:
             raise RuntimeError(f"WEEX HTTP {resp.status_code}: {payload}")

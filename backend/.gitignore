@@ -2,3 +2,9 @@ backend/.env
 backend/ai_logs.sqlite
 backend/*.sqlite
 **/__pycache__/
+
+# local patch scripts + backups (do not commit)
+patch_*.py
+server.py.bak*
+*.bak
+*.bak2
